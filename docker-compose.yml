@@ -8,8 +8,8 @@ services:
       dockerfile: Dockerfile
     container_name: ai-sales-app
     ports:
-      - "8000:8000"  # Backend API
       - "3000:3000"  # Frontend dev server
+      - "8000:8000"  # Backend API
     env_file:
       - ./backend/.env
     restart: unless-stopped

@@ -29,31 +29,48 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
-    
-    # CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    
+
+    # CORS middleware - Security compliant
+    if settings.cors_allow_all_origins:
+        # When allowing all origins, disable credentials for security
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,  # Cannot use credentials with wildcard origins
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    else:
+        # Use explicit origins with credentials enabled
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins_list,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
     # Register routes
     app.include_router(health.router, tags=["Health"])
     app.include_router(leads.router, prefix="/api/v1/leads", tags=["Leads"])
-    app.include_router(research.router, prefix="/api/v1/research", tags=["Research"])
-    app.include_router(in_sequence.router, prefix="/api/v1/in-sequence", tags=["In Sequence"])
+    app.include_router(
+        research.router, prefix="/api/v1/research", tags=["Research"])
+    app.include_router(in_sequence.router,
+                       prefix="/api/v1/in-sequence", tags=["In Sequence"])
     app.include_router(drafts.router, prefix="/api/v1/drafts", tags=["Drafts"])
-    app.include_router(templates.router, prefix="/api/v1/templates", tags=["Templates"])
-    app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
-    app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
+    app.include_router(
+        templates.router, prefix="/api/v1/templates", tags=["Templates"])
+    app.include_router(
+        analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
+    app.include_router(
+        webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
     app.include_router(debug.router, prefix="/api/v1/debug", tags=["Debug"])
     app.include_router(emails.router, prefix="/api/v1", tags=["Emails"])
 
     # Backend serves API only - frontend is served by Nginx on port 3000
-    logger.info("Backend running in API-only mode. Frontend served on port 3000.")
-    
+    logger.info(
+        "Backend running in API-only mode. Frontend served on port 3000.")
+
     return app
 
 

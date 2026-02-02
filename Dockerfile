@@ -9,22 +9,24 @@ RUN npm install && npm run build
 FROM python:3.11-slim
 WORKDIR /app
 
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    supervisor \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install Python dependencies
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
 COPY backend/ .
-COPY --from=frontend-build /app/dist ./static
 
-# Install Node.js and supervisor for process management
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    nodejs \
-    npm \
-    supervisor \
-    && rm -rf /var/lib/apt/lists/*
+# Copy built frontend for static serving
+COPY --from=frontend-build /app/dist ./frontend-dist
 
-# Copy frontend source
+# Copy frontend source for dev server
 COPY frontend/ ./frontend/
 WORKDIR /app/frontend
 RUN npm install
