@@ -1,7 +1,16 @@
 # Environment Variables
 .env
-.env.*
-!.env.example
+*.env
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+
+# Unwanted files and debug scripts
+unwanted_files/
+
+
+
 
 # Python
 __pycache__/

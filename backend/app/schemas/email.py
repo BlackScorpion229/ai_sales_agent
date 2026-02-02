@@ -18,7 +18,7 @@ class ReceivedEmail(BaseModel):
 
     class Config:
         from_attributes = True
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 class ReceivedEmailList(BaseModel):
@@ -46,4 +46,4 @@ class ReceivedEmailDetail(BaseModel):
 
     class Config:
         from_attributes = True
-        allow_population_by_field_name = True
+        populate_by_name = True

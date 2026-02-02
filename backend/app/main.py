@@ -51,35 +51,8 @@ def create_app() -> FastAPI:
     app.include_router(debug.router, prefix="/api/v1/debug", tags=["Debug"])
     app.include_router(emails.router, prefix="/api/v1", tags=["Emails"])
 
-    # PROD: Serve Frontend Static Files (Single Docker Image)
-    import os
-    from fastapi.staticfiles import StaticFiles
-    from fastapi.responses import FileResponse
-
-    # In Docker, we'll put build files in /app/static
-    # Locally, we might check if ../frontend/dist exists (optional, but good for testing)
-    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-    
-    # If the directory exists (it will in Docker), mount it
-    if os.path.exists(static_dir):
-        logger.info(f"Serving static files from {static_dir}")
-        
-        # Mount assets/js/css
-        app.mount("/assets", StaticFiles(directory=f"{static_dir}/assets"), name="assets")
-        
-        # Catch-all for SPA (serves index.html)
-        @app.get("/{full_path:path}")
-        async def serve_spa(full_path: str):
-            # API routes are already handled above, so this catches everything else
-            # If it's a file request that wasn't found in assets, it might be favicon.ico etc.
-            potential_file = os.path.join(static_dir, full_path)
-            if os.path.isfile(potential_file):
-                return FileResponse(potential_file)
-                
-            # Otherwise return index.html for React Router
-            return FileResponse(os.path.join(static_dir, "index.html"))
-    else:
-        logger.warning(f"Static directory not found at {static_dir}. Running in API-only mode (or local dev).")
+    # Backend serves API only - frontend is served by Nginx on port 3000
+    logger.info("Backend running in API-only mode. Frontend served on port 3000.")
     
     return app
 

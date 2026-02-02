@@ -1,33 +1,37 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  db:
+  # PostgreSQL Database
+  postgres:
     image: postgres:15-alpine
-    container_name: ai_sales_db
+    container_name: ai-sales-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ai_sales_agent
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ai_sales_agent}
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
+    networks:
+      - ai-sales-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: ai_sales_redis
+    container_name: ai-sales-redis
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
+    networks:
+      - ai-sales-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
 
@@ -36,43 +40,28 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ai_sales_app
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/ai_sales_agent
-      - REDIS_URL=redis://redis:6379/0
-      # Internal API URL for server-side calls if needed (usually just local)
-      - API_URL=http://localhost:8000
-    env_file:
-      - ./backend/.env
+    container_name: ai-sales-app
     ports:
-      - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    # No volumes mapping by default to simulate prod (use the built assets)
-    # command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-  celery_worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ai_sales_celery
+      - "3000:3000"  # Frontend
+      - "8000:8000"  # Backend
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/ai_sales_agent
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-ai_sales_agent}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     env_file:
       - ./backend/.env
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      app:
-        condition: service_started
-    command: celery -A app.workers.celery_app worker -l info
+    networks:
+      - ai-sales-network
+    restart: unless-stopped
+
+networks:
+  ai-sales-network:
+    driver: bridge
 
 volumes:
   postgres_data:
-  redis_data:
